@@ -2442,16 +2442,10 @@ class Assert
     {
         static::string($value, $message);
 
-        $originalValue = $value;
-        $value = \str_replace(['urn:', 'uuid:', '{', '}'], '', $value);
-
-        // The nil UUID is special form of UUID that is specified to have all
-        // 128 bits set to zero.
-        if ('00000000-0000-0000-0000-000000000000' === $value) {
-            return $originalValue;
-        }
-
-        if (!\preg_match('/^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/D', $value)) {
+        // Accepts the plain form (including the nil UUID with all 128 bits
+        // set to zero), optionally preceded by "urn:" and/or "uuid:" and
+        // optionally wrapped in a matching pair of curly braces.
+        if (!\preg_match('/^(?:urn:)?(?:uuid:)?(\{)?[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}(?(1)\})$/D', $value)) {
             $message = self::resolveMessage($message);
             static::reportInvalidArgument(\sprintf(
                 $message ?: 'Value %s is not a valid UUID.',
@@ -2459,7 +2453,7 @@ class Assert
             ));
         }
 
-        return $originalValue;
+        return $value;
     }
 
     /**
