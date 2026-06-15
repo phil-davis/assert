@@ -2442,18 +2442,33 @@ class Assert
     {
         static::string($value, $message);
 
-        // Accepts the plain form (including the nil UUID with all 128 bits
-        // set to zero), optionally preceded by "urn:" and/or "uuid:" and
-        // optionally wrapped in a matching pair of curly braces.
-        if (!\preg_match('/^(?:urn:)?(?:uuid:)?(\{)?[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}(?(1)\})$/D', $value)) {
-            $message = self::resolveMessage($message);
-            static::reportInvalidArgument(\sprintf(
-                $message ?: 'Value %s is not a valid UUID.',
-                static::valueToString($value)
-            ));
+        $uuid = '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}';
+
+        // URN form as specified by RFC 9562, e.g. "urn:uuid:ff6f8cb0-...".
+        if (\str_starts_with($value, 'urn:uuid:') && \preg_match('/^urn:uuid:'.$uuid.'$/D', $value)) {
+            return $value;
         }
 
-        return $value;
+        // "uuid:" prefix, optionally combined with the curly-braced form.
+        if (\str_starts_with($value, 'uuid:') && \preg_match('/^uuid:(?:'.$uuid.'|\{'.$uuid.'\})$/D', $value)) {
+            return $value;
+        }
+
+        // Curly-braced form; the braces must be a matching pair.
+        if (\str_starts_with($value, '{') && \str_ends_with($value, '}') && \preg_match('/^\{'.$uuid.'\}$/D', $value)) {
+            return $value;
+        }
+
+        // Plain form, including the nil UUID with all 128 bits set to zero.
+        if (\preg_match('/^'.$uuid.'$/D', $value)) {
+            return $value;
+        }
+
+        $message = self::resolveMessage($message);
+        static::reportInvalidArgument(\sprintf(
+            $message ?: 'Value %s is not a valid UUID.',
+            static::valueToString($value)
+        ));
     }
 
     /**
